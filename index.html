@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ahmed's Weekly Meal Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #f0ede8;
+    --muted: #888;
+    --faint: #444;
+    --accent: #c8f55a;
+    --accent-dim: #a8d040;
+    --protein: #5ab4f5;
+    --carb: #c084fc;
+    --fat: #fb923c;
+    --cal: #f0ede8;
+    --sat: #f59e0b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2.5rem 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .header-left h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2.2rem;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .header-left h1 span { color: var(--accent); font-style: italic; }
+  .header-left p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 0.4rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .macro-header { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .macro-stat { text-align: right; }
+  .macro-stat .val {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 500;
+    display: block;
+  }
+  .macro-stat .lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .macro-stat.p .val { color: var(--protein); }
+  .macro-stat.c .val { color: var(--carb); }
+  .macro-stat.f .val { color: var(--fat); }
+  .macro-stat.cal .val { color: var(--accent); }
+
+  nav {
+    padding: 0 2.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.9rem 1.2rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -1px;
+  }
+  nav button:hover { color: var(--text); }
+  nav button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main { padding: 2rem 2.5rem; max-width: 1100px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 2rem;
+  }
+  .day-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 0.5rem 0 0.6rem;
+    text-align: center;
+  }
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 0.6rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 100px;
+  }
+  .day-card:hover { border-color: var(--border2); background: var(--surface2); }
+  .day-card.selected { border-color: var(--accent); }
+  .day-card.rest-day { border-style: dashed; }
+  .day-card.sat-day { border-color: var(--sat); }
+  .day-tag {
+    font-size: 0.6rem;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .tag-train { background: rgba(90,180,245,0.15); color: var(--protein); }
+  .tag-rest { background: rgba(136,136,136,0.12); color: var(--muted); }
+  .tag-sbd { background: rgba(245,158,11,0.15); color: var(--sat); }
+  .tag-prep { background: rgba(200,245,90,0.12); color: var(--accent); }
+  .day-meal-name { font-size: 0.78rem; line-height: 1.35; color: var(--text); margin-top: 2px; }
+  .day-meal-sub { font-size: 0.68rem; color: var(--muted); margin-top: 3px; }
+
+  .detail-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+  }
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .detail-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+  .detail-day-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 1.25rem;
+  }
+  .meal-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .meal-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  .meal-name { font-size: 0.88rem; font-weight: 500; margin-bottom: 4px; }
+  .meal-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .meal-macros { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .mini-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+  }
+  .mini-pill.p { background: rgba(90,180,245,0.12); color: var(--protein); }
+  .mini-pill.c { background: rgba(192,132,252,0.12); color: var(--carb); }
+  .mini-pill.cal { background: rgba(200,245,90,0.1); color: var(--accent-dim); }
+
+  .prep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .prep-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .prep-card-title { font-size: 1rem; font-weight: 500; margin-bottom: 4px; }
+  .prep-card-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 1rem; }
+  .step-list { list-style: none; padding: 0; }
+  .step-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num {
+    min-width: 18px;
+    height: 18px;
+    background: var(--surface2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--faint);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .grocery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .grocery-section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 0 0 0.5rem;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .grocery-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity 0.1s;
+  }
+  .grocery-item:last-child { border-bottom: none; }
+  .grocery-item.checked { opacity: 0.35; }
+  .grocery-item.checked .g-check { background: var(--accent); border-color: var(--accent); }
+  .grocery-item.checked .g-check::after { opacity: 1; }
+  .g-check {
+    width: 16px; height: 16px;
+    min-width: 16px;
+    border: 1px solid var(--faint);
+    border-radius: 3px;
+    margin-top: 2px;
+    position: relative;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .g-check::after {
+    content: '';
+    position: absolute;
+    left: 4px; top: 1px;
+    width: 5px; height: 9px;
+    border-right: 1.5px solid var(--bg);
+    border-bottom: 1.5px solid var(--bg);
+    transform: rotate(40deg);
+    opacity: 0;
+  }
+  .g-name { font-size: 0.82rem; color: var(--text); }
+  .g-qty { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
+  .grocery-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .prog-track {
+    flex: 1;
+    height: 3px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .prog-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .prog-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .tips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .tip-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .tip-icon { font-size: 1.3rem; margin-bottom: 0.6rem; display: block; }
+  .tip-title { font-size: 0.92rem; font-weight: 500; margin-bottom: 6px; }
+  .tip-text { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+  .tip-text strong { color: var(--text); font-weight: 500; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .alert-box {
+    background: rgba(200,245,90,0.06);
+    border: 1px solid rgba(200,245,90,0.2);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.82rem;
+    color: var(--accent-dim);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .scroll-hint {
+    font-size: 0.72rem;
+    color: var(--faint);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.75rem;
+  }
+
+  @media (max-width: 700px) {
+    header { padding: 1.25rem 1rem; }
+    nav { padding: 0 1rem; }
+    main { padding: 1.25rem 1rem; }
+    .week-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Ahmed's <span>meal plan</span></h1>
+    <p>220 lb · Powerlifter · Body recomp</p>
+  </div>
+  <div class="macro-header">
+    <div class="macro-stat p"><span class="val">~215g</span><span class="lbl">Protein</span></div>
+    <div class="macro-stat c"><span class="val">~290g</span><span class="lbl">Carbs</span></div>
+    <div class="macro-stat f"><span class="val">~65g</span><span class="lbl">Fat</span></div>
+    <div class="macro-stat cal"><span class="val">~2,650</span><span class="lbl">Calories</span></div>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="switchTab('week')">Week view</button>
+  <button onclick="switchTab('sunday')">Sunday prep</button>
+  <button onclick="switchTab('grocery')">Grocery list</button>
+  <button onclick="switchTab('tips')">Tips</button>
+</nav>
+
+<main>
+
+  <div id="week" class="panel active">
+    <p class="scroll-hint">Click any day for full meal breakdown</p>
+    <div class="week-grid" id="weekGrid"></div>
+    <div class="detail-panel" id="detailPanel"></div>
+  </div>
+
+  <div id="sunday" class="panel">
+    <div class="alert-box">Cook everything in parallel — chicken + veggies share the oven, rice in a pot, potatoes in the air fryer. Total time: <strong>~2 to 2.5 hours</strong>.</div>
+    <p class="section-label">What you're making</p>
+    <div class="prep-grid" id="prepGrid"></div>
+  </div>
+
+  <div id="grocery" class="panel">
+    <div class="grocery-progress">
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <span class="prog-text" id="progText">0 / 0 items</span>
+    </div>
+    <div class="grocery-grid" id="groceryGrid"></div>
+  </div>
+
+  <div id="tips" class="panel">
+    <div class="tips-grid" id="tipsGrid"></div>
+  </div>
+
+</main>
+
+<script>
+const days = [
+  {
+    short: 'Mon', label: 'Monday', type: 'train',
+    dinner: 'Ground beef taco bowl',
+    dinnerSub: 'Beef · rice · tomatoes · hot sauce',
+    meals: [
+      { time: '7–8 AM', name: 'Breakfast', desc: '3 scrambled eggs + 1 cup oats w/ blueberries + 1 cup milk. Creatine + electrolytes here.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10–11 AM', name: 'OWYN shake', desc: '1 OWYN shake — keep it simple between breakfast and lunch.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '12:30 PM', name: 'Prepped lunch', desc: 'Chicken rice bowl — pull from fridge, microwave 2 min.', macros: { p: '~56g', c: '~65g', cal: '~580' } },
+      { time: '3:30 PM', name: 'Snack', desc: 'Greek yogurt + banana. Big gap before dinner — this carries you through the commute and session without a crash.', macros: { p: '~17g', c: '~40g', cal: '~230' } },
+      { time: '6–7 PM', name: 'Train (light)', desc: 'Hypertrophy / accessory work. 40 min commute home after.', macros: null },
+      { time: '~8 PM', name: 'Dinner', desc: 'Ground beef taco bowl — brown beef with cumin + garlic, serve over rice, cherry tomatoes, hot sauce. Optional half avocado.', macros: { p: '~55g', c: '~65g', cal: '~640' } },
+    ]
+  },
+  {
+    short: 'Tue', label: 'Tuesday', type: 'train',
+    dinner: 'Salmon + air fryer potatoes',
+    dinnerSub: 'Salmon · Yukons · spinach',
+    meals: [
+      { time: '7–8 AM', name: 'Breakfast', desc: '3 scrambled eggs + 1 cup oats + 1 cup milk.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10–11 AM', name: 'OWYN shake', desc: '1 OWYN shake.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '12:30 PM', name: 'Prepped lunch', desc: 'Chicken rice bowl + tuna mixed in for an extra protein hit on Tuesday.', macros: { p: '~80g', c: '~65g', cal: '~680' } },
+      { time: '3:30 PM', name: 'Snack', desc: 'Greek yogurt + banana. Same logic as Monday — bridges the gap to an 8 PM dinner.', macros: { p: '~17g', c: '~40g', cal: '~230' } },
+      { time: '6–7 PM', name: 'Train (light)', desc: 'Hypertrophy / accessory work.', macros: null },
+      { time: '~8 PM', name: 'Dinner', desc: 'Pan-seared salmon (soy sauce + garlic, 4 min/side) + air fryer Yukon Golds + sautéed spinach in the same pan after the salmon.', macros: { p: '~48g', c: '~40g', cal: '~560' } },
+    ]
+  },
+  {
+    short: 'Wed', label: 'Wednesday', type: 'train',
+    dinner: 'Pasta + ground beef tomato sauce',
+    dinnerSub: 'Penne · beef · canned tomatoes',
+    meals: [
+      { time: '7–8 AM', name: 'Breakfast', desc: '3 scrambled eggs + 1 cup oats + 1 cup milk.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10–11 AM', name: 'OWYN shake', desc: '1 OWYN shake.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '12:30 PM', name: 'Prepped lunch', desc: 'Chicken rice bowl + half avocado on top.', macros: { p: '~56g', c: '~65g', cal: '~690' } },
+      { time: '3:30 PM', name: 'Snack', desc: 'Greek yogurt + banana. Midweek — keep the snack consistent.', macros: { p: '~17g', c: '~40g', cal: '~230' } },
+      { time: '6–7 PM', name: 'Train (light)', desc: 'Paused low bar — technique focus.', macros: null },
+      { time: '~8 PM', name: 'Dinner', desc: 'Penne with ground beef tomato sauce — beef · canned tomatoes · Italian seasoning. High carb night, great for midweek recovery.', macros: { p: '~52g', c: '~80g', cal: '~680' } },
+    ]
+  },
+  {
+    short: 'Thu', label: 'Thursday', type: 'train',
+    dinner: 'Egg fried rice',
+    dinnerSub: 'Eggs · leftover rice · soy sauce',
+    meals: [
+      { time: '7–8 AM', name: 'Breakfast', desc: '3 scrambled eggs + 1 cup oats + 1 cup milk.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10–11 AM', name: 'OWYN shake', desc: '1 OWYN shake.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '12:30 PM', name: 'Prepped lunch', desc: 'Chicken wrap — shred prepped chicken into whole wheat tortilla, spinach, hot sauce.', macros: { p: '~62g', c: '~75g', cal: '~640' } },
+      { time: '3:30 PM', name: 'Snack', desc: 'Greek yogurt + banana. Last hard training day of the week — fuel it properly.', macros: { p: '~17g', c: '~40g', cal: '~230' } },
+      { time: '6–7 PM', name: 'Train (light)', desc: 'Hypertrophy / accessory work.', macros: null },
+      { time: '~8 PM', name: 'Dinner', desc: 'Egg fried rice — 4 eggs · leftover rice · soy sauce · garlic · zucchini. Low protein night — add a can of tuna on the side if it was a hard session.', macros: { p: '~42g', c: '~70g', cal: '~590' } },
+    ]
+  },
+  {
+    short: 'Fri', label: 'Friday', type: 'rest',
+    dinner: 'Ground beef stir fry + rice',
+    dinnerSub: 'Beef · peppers · zucchini · rice',
+    meals: [
+      { time: '7–8 AM', name: 'Breakfast', desc: '3 scrambled eggs + 1 cup oats + 1 cup milk. Active rest day — no training, keep meals the same.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10–11 AM', name: 'OWYN shake', desc: '1 OWYN shake.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '12:30 PM', name: 'Prepped lunch', desc: 'Last lunch container from the week — chicken rice bowl or wrap, whatever is left.', macros: { p: '~56g', c: '~65g', cal: '~580' } },
+      { time: '3:30 PM', name: 'Snack', desc: 'Cottage cheese + banana. Rest day — slow casein protein + carbs for overnight muscle recovery heading into SBD day tomorrow.', macros: { p: '~14g', c: '~30g', cal: '~175' } },
+      { time: '7 PM', name: 'Dinner', desc: 'Ground beef stir fry — beef · bell pepper · zucchini · onion · soy sauce + garlic sauce. Serve over rice.', macros: { p: '~50g', c: '~65g', cal: '~600' } },
+      { time: '9:30 PM', name: 'Cottage cheese', desc: 'Half cup before bed. Most important night of the week for this — slow casein feeds your muscles overnight before your heaviest session.', macros: { p: '~14g', c: '~4g', cal: '~90' } },
+    ]
+  },
+  {
+    short: 'Sat', label: 'Saturday — SBD', type: 'sbd',
+    dinner: 'Post-session — eat big',
+    dinnerSub: 'Most important meal of the week',
+    meals: [
+      { time: '8:30–9 AM', name: 'Pre-lift breakfast', desc: '4 eggs scrambled + 1.5 cups oats + 1 cup milk + banana. Eat exactly 3 hrs before you unrack. No heavy fats — eggs and oats digest cleanly and won\'t sit on you.', macros: { p: '~54g', c: '~100g', cal: '~760' } },
+      { time: '10:30 AM', name: 'Optional top-up', desc: 'Half an OWYN shake or just a banana if your stomach is settled. Hard stop here — nothing within 90 min of lifting.', macros: { p: '~16g', c: '~15g', cal: '~130' } },
+      { time: '12–3 PM', name: 'SBD session', desc: 'Squat · Bench · Deadlift. ~3 hour session.', macros: null },
+      { time: 'Immediately post', name: 'OWYN shake', desc: 'Drink this the moment you\'re done. Don\'t wait until you get home.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: '4:30–5 PM', name: 'Recovery meal', desc: 'Most important meal of the week. Rice + chicken or ground beef + potatoes. Eat to fullness — this is not the time to be conservative. Your muscles are primed to absorb everything right now.', macros: { p: '~80g+', c: '~100g+', cal: '~900+' } },
+      { time: 'Evening', name: 'Flex dinner', desc: 'Eat what you want — you earned it. Keep it high protein but don\'t stress the macros tonight. This is your highest calorie day of the week naturally.', macros: null },
+    ]
+  },
+  {
+    short: 'Sun', label: 'Sunday — Prep day', type: 'prep',
+    dinner: 'Meal prep',
+    dinnerSub: 'Cook for the week',
+    meals: [
+      { time: 'Morning', name: 'Breakfast', desc: '3 eggs + oats + milk. Active rest day — same breakfast as always.', macros: { p: '~44g', c: '~70g', cal: '~590' } },
+      { time: '10 AM', name: 'OWYN shake', desc: '1 OWYN shake while you start prepping.', macros: { p: '~32g', c: '~10g', cal: '~200' } },
+      { time: 'Afternoon', name: 'Meal prep block', desc: 'See Sunday Prep tab — chicken · rice · roasted veg · potatoes. ~2–2.5 hrs total. Cook everything in parallel.', macros: null },
+      { time: 'Lunch', name: 'Eat from the prep', desc: 'Taste-test your chicken rice bowl. One container down, four to go.', macros: { p: '~56g', c: '~65g', cal: '~580' } },
+      { time: 'Evening', name: 'Light dinner', desc: 'Simple — eggs + toast + whatever veg you have. You already cooked enough today.', macros: { p: '~30g', c: '~40g', cal: '~380' } },
+      { time: '9:30 PM', name: 'Cottage cheese', desc: 'Before bed — good habit to build on rest days for overnight muscle protein synthesis.', macros: { p: '~14g', c: '~4g', cal: '~90' } },
+    ]
+  }
+];
+
+const prepItems = [
+  {
+    title: 'Chicken breast — 5 servings',
+    sub: 'Bake at 400°F · main lunch protein all week',
+    macros: '~52g P · 0g C · ~240 cal per serving',
+    steps: [
+      'Season 4.5 lbs chicken breast: garlic powder, Italian seasoning, salt, pepper. Marinate half in soy sauce + garlic for variety.',
+      'Bake at 400°F for 22–25 min. Rest 5 min before slicing.',
+      'Divide into 5 equal portions (~7 oz each) into meal prep containers.'
+    ]
+  },
+  {
+    title: 'White rice — 5 servings',
+    sub: 'Cook in chicken broth for flavor',
+    macros: '~65g C · 4g P · ~280 cal per serving',
+    steps: [
+      'Measure 2.5 cups dry rice → rinse.',
+      'Cook in 4 cups chicken broth + water. Steam 10 min off heat.',
+      'Portion ~1 cup cooked rice into each lunch container alongside chicken.'
+    ]
+  },
+  {
+    title: 'Roasted broccoli + bell peppers',
+    sub: 'Oven shares with chicken — stagger by 5 min',
+    macros: '~5g fiber · ~60 cal per serving',
+    steps: [
+      'Chop 2 broccoli crowns + 3 bell peppers into bite-sized pieces.',
+      'Toss in cooking spray, salt, garlic powder.',
+      'Chicken goes in first. Add veggies at the 5-min mark — both finish together.',
+      'Divide into 5 portions, add to containers.'
+    ]
+  },
+  {
+    title: 'Air fryer potatoes — make 2x per week',
+    sub: "Don't batch all 5 days — they go soggy. Make Sunday + Wednesday.",
+    macros: '~35g C · ~160 cal per serving',
+    steps: [
+      'Cut 1.5 lbs Yukon Gold into ¾ inch cubes.',
+      'Toss in cooking spray, smoked paprika, garlic powder, salt.',
+      'Air fry at 400°F for 18–20 min, shake halfway.',
+      'Store separately. Reheat in air fryer 5 min day-of — don\'t microwave them.'
+    ]
+  },
+  {
+    title: 'Container setup',
+    sub: '5 containers labeled Mon–Fri, stacked front to back',
+    macros: '~56g P · ~65g C · ~580 cal each',
+    steps: [
+      'Each container: 1 portion chicken + 1 cup rice + roasted veg.',
+      'Stack in fridge front to back = Monday to Friday. Pull from the front.',
+      'They keep 5 full days no problem.',
+      'Add half avocado or tuna can day-of to change up macros without extra prep.'
+    ]
+  }
+];
+
+const groceryData = [
+  {
+    section: 'Proteins',
+    items: [
+      { name: 'Chicken breast', qty: '4.5–5 lbs' },
+      { name: '93% lean ground beef', qty: '2 lbs' },
+      { name: 'Salmon fillets', qty: '1 lb (2 fillets)' },
+      { name: 'Canned tuna', qty: '4 cans (5 oz)' },
+      { name: 'Eggs', qty: '18 count' },
+      { name: 'OWYN protein shakes', qty: '7 (1/day)' },
+      { name: 'Low-fat Greek yogurt', qty: '32 oz tub' },
+      { name: 'Cottage cheese', qty: '16 oz' },
+      { name: 'Milk (2%)', qty: '1 gallon' },
+    ]
+  },
+  {
+    section: 'Carbs',
+    items: [
+      { name: 'White rice', qty: '5 lb bag' },
+      { name: 'Pasta (penne or rotini)', qty: '1 lb' },
+      { name: 'Russet or Yukon Gold potatoes', qty: '3 lbs' },
+      { name: 'Rolled oats', qty: '42 oz canister' },
+      { name: 'Whole wheat tortillas', qty: '1 pack (10 ct)' },
+      { name: 'Bananas', qty: '1 bunch (~7)' },
+    ]
+  },
+  {
+    section: 'Vegetables',
+    items: [
+      { name: 'Broccoli', qty: '2 crowns' },
+      { name: 'Bell peppers', qty: '3 (mixed)' },
+      { name: 'Spinach', qty: '10 oz bag' },
+      { name: 'Zucchini', qty: '2 medium' },
+      { name: 'Cherry tomatoes', qty: '1 pint' },
+      { name: 'Yellow onion', qty: '2 medium' },
+      { name: 'Garlic', qty: '1 head' },
+    ]
+  },
+  {
+    section: 'Fruits',
+    items: [
+      { name: 'Blueberries', qty: '1 pint' },
+      { name: 'Apples', qty: '4 medium' },
+      { name: 'Oranges or clementines', qty: '4–5' },
+      { name: 'Bananas', qty: 'Already in carbs above' },
+    ]
+  },
+  {
+    section: 'Fats (limited)',
+    items: [
+      { name: 'Avocados', qty: '4 (half per day max)' },
+      { name: 'Olive oil', qty: '16 oz bottle' },
+      { name: 'Natural peanut butter', qty: '16 oz (use sparingly)' },
+    ]
+  },
+  {
+    section: 'Pantry',
+    items: [
+      { name: 'Low-sodium soy sauce', qty: '1 bottle' },
+      { name: 'Canned diced tomatoes', qty: '2 cans (14 oz)' },
+      { name: 'Chicken broth', qty: '32 oz box' },
+      { name: 'Hot sauce (Cholula etc.)', qty: '1 bottle' },
+      { name: 'Italian seasoning + cumin', qty: 'Check pantry first' },
+      { name: 'Cooking spray', qty: '1 can' },
+      { name: 'Smoked paprika', qty: 'Check pantry first' },
+    ]
+  }
+];
+
+const tipsData = [
+  { icon: '⚡', title: 'Saturday pre-lift window', text: 'Eat your big breakfast <strong>exactly 3 hours before noon</strong> — so 8:30–9 AM. After 10:30 AM, nothing heavy. A banana or half a shake is the ceiling. Lifting on a full stomach kills performance and makes deadlifts miserable.' },
+  { icon: '🕗', title: 'Dinner at 8 PM is fine', text: 'The 3:30 PM snack (yogurt + banana) is doing real work here — it bridges a 4+ hour gap between lunch and an 8 PM dinner through a training session and a 40-min commute. <strong>Don\'t skip it.</strong>' },
+  { icon: '🥊', title: 'Thursday fried rice protein gap', text: 'Egg fried rice only hits <strong>~42g protein at dinner</strong> — your lowest of the week. If Thursday was a hard session, add a can of tuna on the side. Non-negotiable on heavy weeks.' },
+  { icon: '🥑', title: 'Fat budget is tighter than you think', text: '1 tbsp olive oil = 14g fat. Half an avocado = 11g. 2 tbsp peanut butter = 16g. Target is ~65g/day. <strong>Pick one fat source per day</strong> or you overshoot without realizing it.' },
+  { icon: '🥔', title: 'Potatoes: don\'t batch the full week', text: 'Fridge-stored cooked potatoes go mealy. <strong>Make a fresh batch Sunday + Wednesday only.</strong> 18 min in the air fryer — not worth ruining 5 days of lunches to save 20 minutes.' },
+  { icon: '💤', title: 'Friday cottage cheese is non-negotiable', text: 'The night before SBD is your most important recovery window. <strong>Cottage cheese before bed = slow casein</strong> feeding your muscles all night. Low effort, directly supports Saturday performance.' },
+  { icon: '🏋️', title: 'Post-SBD meal is your priority', text: 'You finish at 3 PM. Shake immediately, real meal by 4:30–5 PM. <strong>This is the most important meal of your week</strong> — your muscles are maximally primed to absorb nutrients. Eat to fullness, no exceptions.' },
+  { icon: '📈', title: 'What recomp success looks like', text: 'At 220 lbs don\'t expect fast scale movement. <strong>Strength staying the same or going up = the plan is working.</strong> A half pound per week is fine. Don\'t panic if the scale stalls for a week — body composition is changing even when weight isn\'t.' },
+];
+
+let selectedDay = 0;
+let checkedItems = new Set();
+let totalItems = 0;
+
+function buildWeekGrid() {
+  const grid = document.getElementById('weekGrid');
+  days.forEach((day, i) => {
+    const col = document.createElement('div');
+    col.className = 'day-col';
+    const tagClass = day.type === 'train' ? 'tag-train' : day.type === 'sbd' ? 'tag-sbd' : day.type === 'prep' ? 'tag-prep' : 'tag-rest';
+    const tagText = day.type === 'train' ? 'Train' : day.type === 'sbd' ? 'SBD' : day.type === 'prep' ? 'Prep' : 'Rest';
+    col.innerHTML = `
+      <div class="day-header">${day.short}</div>
+      <div class="day-card ${day.type === 'rest' || day.type === 'prep' ? 'rest-day' : ''} ${day.type === 'sbd' ? 'sat-day' : ''}" onclick="selectDay(${i})">
+        <span class="day-tag ${tagClass}">${tagText}</span>
+        <div class="day-meal-name">${day.dinner}</div>
+        <div class="day-meal-sub">${day.dinnerSub}</div>
+      </div>`;
+    grid.appendChild(col);
+  });
+  selectDay(0);
+}
+
+function selectDay(i) {
+  selectedDay = i;
+  document.querySelectorAll('.day-card').forEach((c, j) => c.classList.toggle('selected', i === j));
+  renderDetail(i);
+}
+
+function renderDetail(i) {
+  const day = days[i];
+  const panel = document.getElementById('detailPanel');
+  const tagColor = day.type === 'sbd' ? 'var(--sat)' : day.type === 'train' ? 'var(--protein)' : day.type === 'prep' ? 'var(--accent)' : 'var(--muted)';
+  const tagText = day.type === 'train' ? 'Training day — evening session, dinner ~8 PM' : day.type === 'sbd' ? 'SBD day — 12–3 PM session' : day.type === 'rest' ? 'Active rest day' : 'Rest + meal prep day';
+
+  let mealsHtml = day.meals.map(m => {
+    const macroHtml = m.macros ? `<div class="meal-macros">
+      ${m.macros.p ? `<span class="mini-pill p">${m.macros.p} P</span>` : ''}
+      ${m.macros.c ? `<span class="mini-pill c">${m.macros.c} C</span>` : ''}
+      ${m.macros.cal ? `<span class="mini-pill cal">${m.macros.cal} cal</span>` : ''}
+    </div>` : '';
+    return `<div class="meal-card">
+      <div class="meal-time">${m.time}</div>
+      <div class="meal-name">${m.name}</div>
+      <div class="meal-desc">${m.desc}</div>
+      ${macroHtml}
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div class="detail-day-tag" style="color:${tagColor}">${tagText}</div>
+        <div class="detail-title">${day.label}</div>
+      </div>
+    </div>
+    <div class="meals-grid">${mealsHtml}</div>`;
+}
+
+function buildPrepGrid() {
+  const grid = document.getElementById('prepGrid');
+  prepItems.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'prep-card';
+    const stepsHtml = item.steps.map((s, i) => `<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('');
+    card.innerHTML = `
+      <div class="prep-card-title">${item.title}</div>
+      <div class="prep-card-sub">${item.sub}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-bottom:10px;">${item.macros}</div>
+      <ul class="step-list">${stepsHtml}</ul>`;
+    grid.appendChild(card);
+  });
+}
+
+function buildGrocery() {
+  const grid = document.getElementById('groceryGrid');
+  let idx = 0;
+  groceryData.forEach(section => {
+    const sec = document.createElement('div');
+    sec.className = 'grocery-section';
+    let itemsHtml = section.items.map(item => {
+      const id = idx++;
+      totalItems++;
+      return `<div class="grocery-item" onclick="toggleItem(this, ${id})">
+        <div class="g-check"></div>
+        <div><div class="g-name">${item.name}</div><div class="g-qty">${item.qty}</div></div>
+      </div>`;
+    }).join('');
+    sec.innerHTML = `<div class="grocery-section-title">${section.section}</div>${itemsHtml}`;
+    grid.appendChild(sec);
+  });
+  updateProgress();
+}
+
+function toggleItem(el, id) {
+  el.classList.toggle('checked');
+  if (el.classList.contains('checked')) checkedItems.add(id);
+  else checkedItems.delete(id);
+  updateProgress();
+}
+
+function updateProgress() {
+  const pct = totalItems > 0 ? Math.round((checkedItems.size / totalItems) * 100) : 0;
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progText').textContent = checkedItems.size + ' / ' + totalItems + ' items';
+}
+
+function buildTips() {
+  const grid = document.getElementById('tipsGrid');
+  tipsData.forEach(tip => {
+    const card = document.createElement('div');
+    card.className = 'tip-card';
+    card.innerHTML = `<span class="tip-icon">${tip.icon}</span><div class="tip-title">${tip.title}</div><div class="tip-text">${tip.text}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs = ['week', 'sunday', 'grocery', 'tips'];
+  document.querySelectorAll('nav button')[tabs.indexOf(id)].classList.add('active');
+}
+
+buildWeekGrid();
+buildPrepGrid();
+buildGrocery();
+buildTips();
+</script>
+</body>
+</html>
